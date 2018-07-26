@@ -13,7 +13,7 @@ const client = jwksClient({
     cache: true,
     cacheMaxEntries: 5,
     cacheMaxAge: 3600 * 1000 * 2, // 2h in ms
-    jwksUri: CONF.jwksUri
+    jwksUri: CONF.getJwksUri()
 });
 
 const getKey = (header, callback) =>{
@@ -36,6 +36,14 @@ const decodeHeader = (token) => {
 
 
 const getJwtOptions = (opts = {}) => {
+    return Object.assign({}, {
+        issuer: CONF.issuer,
+        audience: CONF.audience,
+    }, opts);
+};
+
+
+const getUserAndTenantInfo = (token) => {
     return Object.assign({}, {
         issuer: CONF.issuer,
         audience: CONF.audience,
@@ -97,13 +105,14 @@ module.exports = {
         }
 
         if (payload) {
-            req.__HEIMDAL__ = req.__HEIMDAL__ || {};
-            req.__HEIMDAL__.token = req.headers.authorization;
-            req.__HEIMDAL__.auth = payload;
-            req.__HEIMDAL__.username = payload.username;
-            req.__HEIMDAL__.userid = payload.sub;
-            req.__HEIMDAL__.memberships = payload.memberships;
-            req.__HEIMDAL__.role = payload.role;
+            req.__HEIMDAL__ = Object.assign({}, (req.__HEIMDAL__ || {}), {
+                token: req.headers.authorization,
+                auth: payload,
+                username: payload.username,
+                userid: payload.sub,
+                memberships: payload.memberships,
+                role: payload.role,
+            });
             return next();
         } else {
             log.error('JWT payload is empty or undefined', { payload });
