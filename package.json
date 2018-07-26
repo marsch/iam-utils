@@ -9,11 +9,11 @@
   "keywords": [],
   "author": "Basaas GmbH",
   "repository": "https://github.com/openintegrationhub/iam-utils.git",
-  "license": "Apache 2.0",
   "engines": {
     "node": ">=8.0.0"
   },
   "engineStrict": true,
+  "license": "Apache-2.0",
   "dependencies": {
     "@basaas/node-logger": "1.1.2",
     "jsonwebtoken": "8.3.0",

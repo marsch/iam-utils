@@ -1,7 +1,7 @@
 const Logger = require('@basaas/node-logger');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
-
+const axios = ('axios');
 const log = Logger.getLogger(`iam-middleware`);
 
 const CONF = require('./conf');
@@ -22,7 +22,6 @@ const getKey = (header, callback) =>{
         callback(null, signingKey);
     });
 };
-
 
 const decodeHeader = (token) => {
     const tokenBlocks = token.split('.');
@@ -83,10 +82,27 @@ module.exports = {
 
     },
 
+    updateUserData: async (token, userid) => {
+        const iamToken = `Bearer ${token}`;
+        const urlparser = new url(CONF.jwksUri);
+        const iamUrl = `${urlparser.origin}/user/${userid}`;
+        // return await axios({
+        //     method: 'get',
+        //     url: iamUrl,
+        //     headers: {"Authorization" : `${iamToken}`},
+        // }).body;
+        console.log( await axios({
+            method: 'get',
+            url: iamUrl,
+            headers: {"Authorization" : `${iamToken}`},
+        }));
+        
+    },
+
     middleware: async (req, res, next) => {
 
         let payload = null;
-
+        let token = null;
         if (!req.headers.authorization) {
             return next({ status: 401, message: 'Missing authorization header.' });
         }
@@ -97,11 +113,18 @@ module.exports = {
                 log.debug('Authorization header length is incorrect');
                 return next({ status: 401, message: 'Invalid authorization header' });
             }
-            const token = header[1];
+            token = header[1];
             payload = await module.exports.verify(token);
         } catch (err) {
             log.debug('Failed to parse token', err);
             return next({ status: 401, message: `Token invalid. Error: ${err.name}. Details: ${err.message}` });
+        }
+        
+        try {
+
+            await module.exports.updateUserData(token,payload.sub);
+        } catch (err) {
+            console.log(err);
         }
 
         if (payload) {

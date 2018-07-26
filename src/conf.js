@@ -2,7 +2,7 @@
 const CONFIG = {
 
     issuer: process.env.IAM_JWT_ISSUER || 'https://www.example.com',
-    audience: process.env.IAM_JWT_AUDIENCE || 'example.com',
+    audience: process.env.IAM_JWT_AUDIENCE || 'service.example.com',
     hmacSecret: process.env.IAM_JWT_HMAC_SECRET || 'example',
     iamBaseUrl: process.env.IAM_BASE_URL || 'http://localhost:3099',
 
