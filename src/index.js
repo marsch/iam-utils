@@ -1,7 +1,7 @@
 const Logger = require('@basaas/node-logger');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
-const axios = ('axios');
+const axios = require('axios');
 const log = Logger.getLogger(`iam-middleware`);
 
 const CONF = require('./conf');
@@ -84,19 +84,16 @@ module.exports = {
 
     updateUserData: async (token, userid) => {
         const iamToken = `Bearer ${token}`;
-        const urlparser = new url(CONF.jwksUri);
-        const iamUrl = `${urlparser.origin}/user/${userid}`;
-        // return await axios({
-        //     method: 'get',
-        //     url: iamUrl,
-        //     headers: {"Authorization" : `${iamToken}`},
-        // }).body;
-        console.log( await axios({
-            method: 'get',
-            url: iamUrl,
-            headers: {"Authorization" : `${iamToken}`},
-        }));
-        
+        try {
+            const {data} =await axios({
+                method: 'get',
+                url: CONF.getUserData(userid),
+                headers: {"Authorization" : `${iamToken}`},
+            });
+            return data
+        } catch (error) {
+            return new Error('Could not get User Data from IAM Backend');
+        }
     },
 
     middleware: async (req, res, next) => {
@@ -119,12 +116,15 @@ module.exports = {
             log.debug('Failed to parse token', err);
             return next({ status: 401, message: `Token invalid. Error: ${err.name}. Details: ${err.message}` });
         }
-        
-        try {
-
-            await module.exports.updateUserData(token,payload.sub);
-        } catch (err) {
-            console.log(err);
+        if (CONF.updateUserData){
+            try {
+                const updateRes = await module.exports.updateUserData(token,payload.sub);
+                payload.memberships = updateRes.memberships;
+                payload.role = updateRes.role;
+                console.log('Role and Memberships updated');
+            } catch (err) {
+                console.log(err);
+            }
         }
 
         if (payload) {
