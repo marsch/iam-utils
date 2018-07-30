@@ -1,9 +1,8 @@
 const Logger = require('@basaas/node-logger');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
-const axios = require('axios');
+const request = require('request-promise');
 const log = Logger.getLogger(`iam-middleware`);
-
 const CONF = require('./conf');
 
 log.info('iam-middleware config', CONF);
@@ -85,14 +84,21 @@ module.exports = {
     updateUserData: async (token, userid) => {
         const iamToken = `Bearer ${token}`;
         try {
-            const {data} =await axios({
+            const { body } =await request({
                 method: 'get',
-                url: CONF.getUserData(userid),
-                headers: {"Authorization" : `${iamToken}`},
-            });
-            return data
+                uri: CONF.getUserData(userid),
+                headers: {'Authorization': `${iamToken}`},
+                json: true,
+            }
+        );
+            let resobj = {
+                memberships: body.memberships,
+                role: body.role
+            }
+            console.log(resobj);
+            return resobj
         } catch (error) {
-            return new Error('Could not get User Data from IAM Backend');
+            return error;
         }
     },
 
@@ -119,8 +125,9 @@ module.exports = {
         if (CONF.updateUserData){
             try {
                 const updateRes = await module.exports.updateUserData(token,payload.sub);
-                payload.memberships = updateRes.memberships;
-                payload.role = updateRes.role;
+                if (payload) {
+                payload = Object.assign(payload,updateRes);
+                }
                 console.log('Role and Memberships updated');
             } catch (err) {
                 console.log(err);
